@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>随机点名器</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%);
+            --card-bg: #ffffff;
+            --text-main: #1f2937;
+            --text-sub: #4b5563;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 700px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        header {
+            text-align: center;
+            position: relative;
+            margin-bottom: 5px;
+        }
+
+        header h1 {
+            font-size: 2.4rem;
+            color: #1e1b4b;
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+        }
+
+        header p {
+            color: var(--text-sub);
+            font-size: 1.05rem;
+        }
+
+        .settings-icon {
+            position: absolute;
+            right: 0;
+            top: 5px;
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            padding: 8px 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-sub);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            transition: all 0.2s;
+        }
+
+        .settings-icon:hover {
+            background: #f1f5f9;
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        /* Picker Card */
+        .picker-panel {
+            background: var(--card-bg);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .mode-selector {
+            display: flex;
+            background: #f3f4f6;
+            padding: 5px;
+            border-radius: 14px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-sub);
+            cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.2s ease;
+        }
+
+        .mode-btn.active {
+            background: #ffffff;
+            color: var(--primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .display-box {
+            background: linear-gradient(145deg, #f8fafc, #edf2f7);
+            border: 3px dashed #cbd5e1;
+            border-radius: 20px;
+            height: 280px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .display-box.highlight {
+            border-color: var(--primary);
+            background: linear-gradient(145deg, #e0e7ff, #ede9fe);
+            transform: scale(1.01);
+        }
+
+        .student-name {
+            font-size: 4.5rem;
+            font-weight: 800;
+            color: #1e1b4b;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+        }
+
+        .student-meta {
+            font-size: 1.3rem;
+            color: var(--text-sub);
+            font-weight: 500;
+        }
+
+        .multi-result-container {
+            display: none;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            width: 100%;
+            padding: 20px;
+            max-height: 240px;
+            overflow-y: auto;
+        }
+
+        .mini-card {
+            background: #ffffff;
+            border: 2px solid var(--primary);
+            border-radius: 12px;
+            padding: 12px 22px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--primary);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 18px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #334155;
+            flex: 0.4;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e1;
+        }
+
+        .settings-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8fafc;
+            padding: 14px 20px;
+            border-radius: 14px;
+            font-size: 1rem;
+            color: var(--text-sub);
+        }
+
+        .settings-bar label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .settings-bar select {
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            font-size: 0.95rem;
+            outline: none;
+            background: white;
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            width: 500px;
+            max-width: 90%;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+        }
+
+        .modal-card h2 {
+            margin-bottom: 15px;
+            color: #1e1b4b;
+        }
+
+        .modal-card label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--text-sub);
+            font-size: 0.95rem;
+        }
+
+        .modal-card input[type="text"],
+        .modal-card textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            margin-bottom: 15px;
+            outline: none;
+        }
+
+        .modal-card textarea {
+            height: 150px;
+            resize: vertical;
+            font-family: monospace;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-small:hover { background: #f1f5f9; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <button class="settings-icon" onclick="openSettings()">⚙️ 设置名单</button>
+            <h1 id="headerTitle">高一10班 随机点名器</h1>
+            <p id="headerSubtitle">当前名册共 55 位同学</p>
+        </header>
+
+        <!-- Picker Card -->
+        <div class="picker-panel">
+            <div class="mode-selector">
+                <button class="mode-btn active" onclick="switchMode('single')">单人点名</button>
+                <button class="mode-btn" onclick="switchMode('multi')">多人抽取</button>
+            </div>
+
+            <div class="display-box" id="displayBox">
+                <div id="singleResult">
+                    <div class="student-name" id="currentName">准备就绪</div>
+                    <div class="student-meta" id="currentMeta">点击下方按钮或按空格键开始点名</div>
+                </div>
+                <div class="multi-result-container" id="multiResultContainer">
+                    <!-- Multi cards generated here -->
+                </div>
+            </div>
+
+            <div class="controls-row">
+                <button class="btn btn-primary" id="mainBtn" onclick="togglePick()">开始点名 (Space)</button>
+                <button class="btn btn-secondary" onclick="resetPicker()">重置</button>
+            </div>
+
+            <div class="settings-bar">
+                <label>
+                    <input type="checkbox" id="noRepeatCheck" checked> 防重复点名
+                </label>
+                <div id="multiConfig" style="display: none;align-items: center; gap: 8px">
+                    <span>抽取人数: </span>
+                    <select id="multiCountSelect">
+                        <option value="2">2 人</option>
+                        <option value="3" selected>3 人</option>
+                        <option value="5">5 人</option>
+                        <option value="8">8 人</option>
+                        <option value="10">10 人</option>
+                    </select>
+                </div>
+                <label>
+                    <input type="checkbox" id="soundCheck" checked> 开启音效
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal-card">
+            <h2>班级与名单设置</h2>
+            <label>班级标题名称：</label>
+            <input type="text" id="inputClassName" value="高一10班">
+            
+            <label>学生名单（每行一个姓名，可带学号，如：1 包闵贺 男）：</label>
+            <textarea id="inputStudentList" placeholder="每行输入一位同学，格式如：
+1 包闵贺 男
+2 曾舒雯 女"></textarea>
+            
+            <div class="modal-buttons">
+                <button class="btn-small" onclick="closeSettings()" style="background: #e2e8f0;">取消</button>
+                <button class="btn-small btn-primary" onclick="saveSettings()" style="background: var(--primary); color: white;">保存并应用</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Default Students Data
+        const defaultStudents = [
+            {"id": 1, "name": "包闵贺", "gender": "男"},
+            {"id": 2, "name": "曾舒雯", "gender": "女"},
+            {"id": 3, "name": "陈浩贤", "gender": "男"},
+            {"id": 4, "name": "陈倩怡", "gender": "女"},
+            {"id": 5, "name": "陈雅琪", "gender": "女"},
+            {"id": 6, "name": "程维豪", "gender": "男"},
+            {"id": 7, "name": "邓开来", "gender": "男"},
+            {"id": 8, "name": "方海霖", "gender": "男"},
+            {"id": 9, "name": "冯千惠", "gender": "女"},
+            {"id": 10, "name": "郭佳煜", "gender": "男"},
+            {"id": 11, "name": "郭阳", "gender": "男"},
+            {"id": 12, "name": "郝天惠", "gender": "女"},
+            {"id": 13, "name": "黄佳琪", "gender": "女"},
+            {"id": 14, "name": "黄文俪", "gender": "女"},
+            {"id": 15, "name": "李昊轩", "gender": "男"},
+            {"id": 16, "name": "李乐儿", "gender": "女"},
+            {"id": 17, "name": "李啟正", "gender": "男"},
+            {"id": 18, "name": "李舒玥", "gender": "女"},
+            {"id": 19, "name": "李旭城", "gender": "男"},
+            {"id": 20, "name": "李雅欣", "gender": "女"},
+            {"id": 21, "name": "李政逸", "gender": "男"},
+            {"id": 22, "name": "李卓毅", "gender": "男"},
+            {"id": 23, "name": "梁紫萱", "gender": "女"},
+            {"id": 24, "name": "廖潘熠", "gender": "男"},
+            {"id": 25, "name": "林皓", "gender": "男"},
+            {"id": 26, "name": "林铭洋", "gender": "男"},
+            {"id": 27, "name": "刘锦鸿", "gender": "男"},
+            {"id": 28, "name": "刘天保", "gender": "男"},
+            {"id": 29, "name": "罗睿浩", "gender": "男"},
+            {"id": 30, "name": "孟恩琪", "gender": "女"},
+            {"id": 31, "name": "彭凌晔", "gender": "女"},
+            {"id": 32, "name": "邱婉莹", "gender": "女"},
+            {"id": 33, "name": "史羽", "gender": "女"},
+            {"id": 34, "name": "孙勇韬", "gender": "男"},
+            {"id": 35, "name": "唐梓涵", "gender": "女"},
+            {"id": 36, "name": "陶梓涵", "gender": "男"},
+            {"id": 37, "name": "万子豪", "gender": "男"},
+            {"id": 38, "name": "王睿哲", "gender": "男"},
+            {"id": 39, "name": "王炫杰", "gender": "男"},
+            {"id": 40, "name": "王莹", "gender": "女"},
+            {"id": 41, "name": "魏鹏程", "gender": "男"},
+            {"id": 42, "name": "吴文康", "gender": "男"},
+            {"id": 43, "name": "谢卓霏", "gender": "女"},
+            {"id": 44, "name": "徐楚天", "gender": "男"},
+            {"id": 45, "name": "严菲", "gender": "女"},
+            {"id": 46, "name": "姚逸珂", "gender": "男"},
+            {"id": 47, "name": "张佳馨", "gender": "女"},
+            {"id": 48, "name": "张俊铭", "gender": "男"},
+            {"id": 49, "name": "张奕琳", "gender": "女"},
+            {"id": 50, "name": "钟润妍", "gender": "女"},
+            {"id": 51, "name": "钟善如", "gender": "女"},
+            {"id": 52, "name": "周文轩", "gender": "男"},
+            {"id": 53, "name": "周雅恩", "gender": "女"},
+            {"id": 54, "name": "朱雨凡", "gender": "女"},
+            {"id": 55, "name": "邹润熙", "gender": "男"}
+        ];
+
+        let className = localStorage.getItem('picker_className') || "高一10班";
+        let students = JSON.parse(localStorage.getItem('picker_students')) || JSON.parse(JSON.stringify(defaultStudents));
+
+        let drawnSet = new Set(); 
+        let isPicking = false;
+        let pickTimer = null;
+        let currentMode = 'single'; 
+
+        let audioCtx = null;
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playBeep(freq = 400, type = 'sine', duration = 0.08) {
+            const soundEnabled = document.getElementById('soundCheck').checked;
+            if (!soundEnabled) return;
+            try {
+                initAudio();
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) {}
+        }
+
+        function playSuccessSound() {
+            const soundEnabled = document.getElementById('soundCheck').checked;
+            if (!soundEnabled) return;
+            try {
+                initAudio();
+                setTimeout(() => playBeep(523.25, 'triangle', 0.1), 0);
+                setTimeout(() => playBeep(659.25, 'triangle', 0.1), 100);
+                setTimeout(() => playBeep(783.99, 'triangle', 0.2), 200);
+            } catch(e) {}
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            updateHeader();
+        });
+
+        function updateHeader() {
+            document.getElementById('headerTitle').innerText = `${className} 随机点名器`;
+            document.getElementById('headerSubtitle').innerText = `当前名册共 ${students.length} 位同学`;
+        }
+
+        function openSettings() {
+            if (isPicking) return;
+            document.getElementById('inputClassName').value = className;
+            const textLines = students.map(s => `${s.id} ${s.name} ${s.gender}`).join('\n');
+            document.getElementById('inputStudentList').value = textLines;
+            document.getElementById('settingsModal').style.display = 'flex';
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').style.display = 'none';
+        }
+
+        function saveSettings() {
+            const newClassName = document.getElementById('inputClassName').value.trim();
+            const rawText = document.getElementById('inputStudentList').value.trim();
+            
+            if (!newClassName) {
+                alert('班级名称不能为空！');
+                return;
+            }
+            if (!rawText) {
+                alert('学生名单不能为空！');
+                return;
+            }
+
+            const lines = rawText.split('\n');
+            const newStudents = [];
+            
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                const parts = line.split(/\s+/);
+                
+                let id = i + 1;
+                let name = "";
+                let gender = "未知";
+
+                if (parts.length >= 3) {
+                    id = parseInt(parts[0]) || (i + 1);
+                    name = parts[1];
+                    gender = parts[2];
+                } else if (parts.length === 2) {
+                    if (!isNaN(parts[0])) {
+                        id = parseInt(parts[0]);
+                        name = parts[1];
+                    } else {
+                        name = parts[0];
+                        gender = parts[1];
+                    }
+                } else if (parts.length === 1) {
+                    name = parts[0];
+                }
+
+                newStudents.push({ id, name, gender });
+            }
+
+            if (newStudents.length === 0) {
+                alert('未能解析出有效的学生名单，请检查格式！');
+                return;
+            }
+
+            className = newClassName;
+            students = newStudents;
+            drawnSet.clear();
+
+            localStorage.setItem('picker_className', className);
+            localStorage.setItem('picker_students', JSON.stringify(students));
+
+            updateHeader();
+            resetPicker();
+            closeSettings();
+            alert(`成功更新名册，共 ${students.length} 位同学！`);
+        }
+
+        function switchMode(mode) {
+            if (isPicking) return;
+            currentMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+
+            const singleRes = document.getElementById('singleResult');
+            const multiRes = document.getElementById('multiResultContainer');
+            const multiConfig = document.getElementById('multiConfig');
+
+            if (mode === 'single') {
+                singleRes.style.display = 'block';
+                multiRes.style.display = 'none';
+                multiConfig.style.display = 'none';
+                document.getElementById('currentName').innerText = '准备就绪';
+                document.getElementById('currentMeta').innerText = '点击下方按钮开始点名';
+            } else {
+                singleRes.style.display = 'none';
+                multiRes.style.display = 'flex';
+                multiConfig.style.display = 'inline-flex';
+                multiRes.innerHTML = '<div style="color: #6b7280; font-size: 1.1rem; align-self: center;">点击开始抽取多人</div>';
+            }
+        }
+
+        function getPool() {
+            const noRepeat = document.getElementById('noRepeatCheck').checked;
+            return students.filter(s => {
+                if (noRepeat && drawnSet.has(s.id)) return false;
+                return true;
+            });
+        }
+
+        function togglePick() {
+            const btn = document.getElementById('mainBtn');
+            const displayBox = document.getElementById('displayBox');
+
+            if (!isPicking) {
+                let pool = getPool();
+                if (pool.length === 0) {
+                    if (document.getElementById('noRepeatCheck').checked) {
+                        alert('当前轮次已全部点完！防重复名单已自动重置。');
+                        drawnSet.clear();
+                        pool = getPool();
+                    } else {
+                        alert('没有可用的同学！');
+                        return;
+                    }
+                }
+
+                isPicking = true;
+                btn.innerText = '停止 (Space)';
+                btn.style.background = '#dc2626';
+                displayBox.classList.add('highlight');
+
+                if (currentMode === 'single') {
+                    pickTimer = setInterval(() => {
+                        const randStudent = pool[Math.floor(Math.random() * pool.length)];
+                        document.getElementById('currentName').innerText = randStudent.name;
+                        document.getElementById('currentMeta').innerText = `学号: ${randStudent.id} | 性别: ${randStudent.gender}`;
+                        playBeep(350 + Math.random() * 200, 'sine', 0.05);
+                    }, 60);
+                } else {
+                    const count = parseInt(document.getElementById('multiCountSelect').value);
+                    pickTimer = setInterval(() => {
+                        let shuffled = [...pool].sort(() => 0.5 - Math.random());
+                        let tempSelected = shuffled.slice(0, Math.min(count, pool.length));
+                        const multiRes = document.getElementById('multiResultContainer');
+                        multiRes.innerHTML = tempSelected.map(s => `<div class="mini-card">${s.name} <span style="font-size:0.8rem">(${s.id})</span></div>`).join('');
+                        playBeep(450, 'triangle', 0.04);
+                    }, 80);
+                }
+
+            } else {
+                clearInterval(pickTimer);
+                isPicking = false;
+                btn.innerText = '开始点名 (Space)';
+                btn.style.background = 'var(--primary)';
+                displayBox.classList.remove('highlight');
+
+                let pool = getPool();
+                if (currentMode === 'single') {
+                    const finalStudent = pool[Math.floor(Math.random() * pool.length)];
+                    document.getElementById('currentName').innerText = finalStudent.name;
+                    document.getElementById('currentMeta').innerText = `学号: ${finalStudent.id} | 性别: ${finalStudent.gender}`;
+                    drawnSet.add(finalStudent.id);
+                    playSuccessSound();
+                } else {
+                    const count = parseInt(document.getElementById('multiCountSelect').value);
+                    let shuffled = [...pool].sort(() => 0.5 - Math.random());
+                    let finalSelected = shuffled.slice(0, Math.min(count, pool.length));
+                    
+                    const multiRes = document.getElementById('multiResultContainer');
+                    multiRes.innerHTML = finalSelected.map(s => {
+                        drawnSet.add(s.id);
+                        return `<div class="mini-card">${s.name} <span style="font-size:0.8rem">(${s.id})</span></div>`;
+                    }).join('');
+                    playSuccessSound();
+                }
+            }
+        }
+
+        function resetPicker() {
+            if (isPicking) return;
+            drawnSet.clear();
+            if (currentMode === 'single') {
+                document.getElementById('currentName').innerText = '已重置';
+                document.getElementById('currentMeta').innerText = '点击开始点名';
+            } else {
+                document.getElementById('multiResultContainer').innerHTML = '<div style="color: #6b7280; font-size: 1.1rem; align-self: center;">已重置，点击开始抽取</div>';
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                togglePick();
+            }
+        });
+    </script>
+</body>
+</html>
